@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tachistoscopio 3 in 1</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* Pulsante Rinizia compatto in basso a destra */
+    #restart-btn {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      padding: 8px 16px;
+      background-color: rgba(40, 40, 40, 0.8);
+      color: #aaaaaa;
+      border: 1px solid #444444;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.2s ease;
+    }
+
+    #restart-btn:hover {
+      background-color: #333333;
+      color: #ffffff;
+      border-color: #4da6ff;
+    }
+
+    /* Pulsante Credits in basso a sinistra */
+    #credits-btn {
+      position: fixed;
+      bottom: 15px;
+      left: 15px;
+      padding: 8px 16px;
+      background-color: rgba(40, 40, 40, 0.8);
+      color: #aaaaaa;
+      border: 1px solid #444444;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      z-index: 1000;
+      transition: all 0.2s ease;
+    }
+
+    #credits-btn:hover {
+      background-color: #333333;
+      color: #ffffff;
+      border-color: #4da6ff;
+    }
+
+    .card {
+      background-color: #1e1e1e;
+      padding: 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      max-width: 500px;
+      width: 90%;
+      z-index: 10;
+    }
+
+    h1 {
+      margin-bottom: 1.5rem;
+      color: #4da6ff;
+      font-size: 1.8rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      color: #cccccc;
+    }
+
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      background-color: #2a2a2a;
+      color: #fff;
+      font-size: 1.1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: #4da6ff;
+    }
+
+    .start-btn, .action-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #4da6ff;
+      color: #121212;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .start-btn:hover, .action-btn:hover {
+      background-color: #3399ff;
+    }
+
+    .start-btn:active, .action-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Finestra Modale per i Credits */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background-color: #1e1e1e;
+      padding: 2rem;
+      border-radius: 16px;
+      max-width: 450px;
+      width: 90%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      text-align: center;
+      border: 1px solid #333333;
+    }
+
+    .modal-content h2 {
+      color: #4da6ff;
+      margin-bottom: 1rem;
+    }
+
+    .modal-content p {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #dddddd;
+      margin-bottom: 1rem;
+    }
+
+    .close-modal-btn {
+      padding: 8px 20px;
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .close-modal-btn:hover {
+      background-color: #444;
+      border-color: #4da6ff;
+    }
+
+    #game-screen {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background-color: #000000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #word-display {
+      font-size: 5rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #ffffff;
+      user-select: none;
+      margin-bottom: 2rem;
+      min-height: 7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Pulsantoni per la modalità Lettera Singola */
+    .choices-container {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      width: 100%;
+      margin-top: 1rem;
+    }
+
+    .choice-btn {
+      flex: 1;
+      max-width: 160px;
+      height: 110px;
+      font-size: 3.8rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 16px;
+      background-color: #2a2a2a;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      transition: background-color 0.15s, transform 0.1s;
+    }
+
+    .choice-btn:hover {
+      background-color: #3a3a3a;
+      border: 3px solid #4da6ff;
+    }
+
+    .choice-btn:active {
+      transform: scale(0.95);
+    }
+
+    .feedback {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+      min-height: 1.5rem;
+    }
+
+    .correct { color: #4caf50; }
+    .wrong { color: #f44336; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <button id="credits-btn">Credits</button>
+  <button id="restart-btn" class="hidden">Rinizia</button>
+
+  <!-- SCHERMATA CONFIGURAZIONE -->
+  <div id="setup-card" class="card">
+    <h1>Tachistoscopio 3 in 1</h1>
+    <form id="setup-form">
+      <div class="form-group">
+        <label for="exercise-mode">Modalità di esercizio:</label>
+        <select id="exercise-mode">
+          <option value="single-letter">Lettera Singola (scelta a 2 pulsanti)</option>
+          <option value="syllables">Sillabe Singole</option>
+          <option value="words" selected>Parole Intere</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="duration">Durata visibilità (millisecondi):</label>
+        <input type="number" id="duration" value="1600" min="50" step="50" required>
+      </div>
+
+      <div class="form-group" id="count-group">
+        <label for="count-input" id="count-label">Numero di sillabe (1, 2, 3 o 4):</label>
+        <input type="number" id="count-input" value="2" min="1" max="4" required>
+      </div>
+
+      <button type="submit" class="start-btn">Inizia il Gioco</button>
+    </form>
+  </div>
+
+  <!-- FINESTRA MODALE CREDITS -->
+  <div id="credits-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Credits</h2>
+      <p>Sviluppato da Antonio Bosio, con il desiderio di aiutare Paolo e Costanza nell'affrontare con più serenità le difficoltà nella lettura.</p>
+      <p>Questo programma può essere condiviso liberamente e utilizzato da chiunque per aiutare i bambini di tutto il mondo con le stesse difficoltà.</p>
+      <p><br><i>antonio.bosio@gmail.com</i></p>
+      <button id="close-credits-btn" class="close-modal-btn">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- AREA DI GIOCO -->
+  <div id="game-screen">
+    <div id="word-display" class="hidden"></div>
+
+    <div id="input-container" class="card hidden">
+      <h2 id="prompt-title" style="margin-bottom: 1rem; font-size: 1.3rem;">Cosa c'era scritto?</h2>
+      
+      <!-- Opzione 1: Scrittura tastiera (per Parole e Sillabe) -->
+      <div id="text-mode-controls">
+        <input type="text" id="user-input" placeholder="Scrivi la risposta..." autocomplete="off">
+        <button id="check-btn" class="action-btn">Verifica</button>
+      </div>
+
+      <!-- Opzione 2: Pulsantoni grandi (per Lettera Singola) -->
+      <div id="buttons-mode-controls" class="choices-container hidden">
+        <button id="option-1" class="choice-btn"></button>
+        <button id="option-2" class="choice-btn"></button>
+      </div>
+
+      <div id="feedback" class="feedback"></div>
+      <button id="next-btn" class="action-btn hidden" style="background-color: #2196F3; color: white;">Prossimo elemento</button>
+    </div>
+  </div>
+
+  <script>
+    const alfabeto = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "Z"];
+
+    const databaseParole = {
+      1: [
+        "re", "blu", "tre", "gru", "sci", "no", "si", "sol", "bar", "po", "va", "me", "su", "fra", "tra", "mai", "poi", "qui",
+        "est", "sud", "nord", "zio", "zia", "mio", "tuo", "suo", "noi", "voi", "lui", "lei", "con", "per", "fa", "sta",
+        "ha", "ho", "fai", "sto", "san", "don", "via", "dio", "reo", "ora", "boh", "pro"
+      ],
+      2: [
+        "casa", "pane", "mela", "luna", "gatto", "cane", "sole", "rosa", "lago", "pino", "topo", "faro", "luce", "mare", "vito", "pera",
+        "lama", "neve", "fata", "lupo", "sedia", "muro", "palla", "volpe", "nube", "vaso", "ramo", "baffo", "dado", "libro", "tazza", "sasso",
+        "porta", "fiume", "prato", "fiore", "bosco", "erba", "sabbia", "sogno", "ponte", "barca", "treno", "orso", "rospo", "pesce", "gufo",
+        "notte", "sfida", "gioco", "carta", "penna", "tenda", "panca", "forno", "festa", "muso", "coda", "pelo", "zampa", "dito", "naso",
+        "bocca", "mani", "vetro", "sacco", "collo", "petto", "corno", "sella", "ruota", "freno", "miele", "uovo", "olmo", "vigna",
+        "sire", "doga", "pala", "pila", "mota", "mora", "fumo", "raggio", "torta", "latte", "burro", "dolce", "pasta", "pizza", "zuppa",
+        "carne", "fungo", "noce", "fico", "kiwi", "prugna", "uva", "riso", "cece", "fava", "mais"
+      ],
+      3: [
+        "tavolo", "matita", "divano", "balena", "limone", "scatola", "camicia", "lumaca", "pecora", "gelato", "medico", "albero", "quaderno",
+        "musica", "pagina", "scimmia", "nuvola", "strada", "anatra", "sirena", "cuscino", "stivali", "castello", "formaggio", "bottiglia",
+        "finestra", "maglietta", "scarpa", "scuolabus", "quadro", "cartella", "lavagna", "righello", "scoiattolo", "coniglio", "delfino",
+        "farfalla", "marmotta", "giraffa", "pantera", "pinguino", "tartaruga", "banana", "arancia", "ciliegia", "fragola", "albicocca",
+        "pesca", "ananas", "elicottero", "veliero", "astuccio", "pennello", "forchetta", "cucchiaio", "coltello", "bicchiere", "pentola",
+        "padella", "armadio", "scrivania", "lampada", "tappeto", "specchio", "quadretto", "orologio", "campana", "chitarra", "tromba",
+        "flauto", "tamburo", "violino", "pianoforte", "sostegno", "fantasma", "mostro", "strega", "folletto", "gigante", "pirata",
+        "soldato", "principe", "regina", "reame", "tesoro", "moneta", "corona", "scettro", "spada", "scudo", "freccia", "arco"
+      ],
+      4: [
+        "elefante", "pomodoro", "cioccolata", "bicicletta", "margherita", "televisione", "coccinella", "ippopotamo", "caramella",
+        "pizzeria", "operatore", "formidabile", "meraviglia", "astronave", "calcolatrice", "pigiama", "scalinata", "spaventapasseri",
+        "scarafaggio", "millepiedi", "pipistrello", "dinosauro", "camaleonte", "salamandra", "formicaio", "pappagallo",
+        "marmellata", "panettone", "cioccolato", "prosciutto", "mozzarella", "spaghetti", "insalata", "maionese", "minestrone",
+        "biscottino", "pennarello", "evidenziatore", "vocabolario", "biblioteca", "palazzetto", "supermercato", "farmacia", "pasticceria",
+        "gelateria", "aeroplano", "sottomarino", "locomotiva", "motocicletta", "monopattino", "automotrice", "ambulanza", "camioncino",
+        "trattore", "ruspante", "costruzione", "astronomia", "geografia", "matematica", "letteratura", "fotografia", "maratona",
+        "temporale", "arcobaleno", "crepuscolo", "mezzogiorno", "primavera", "pomeriggio", "settimana", "calendario", "oroscopo"
+      ]
+    };
+
+    const databaseSillabe = {
+      1: ["a", "e", "i", "o", "u"],
+      2: ["ba", "ca", "da", "fa", "ga", "ma", "na", "pa", "ra", "sa", "ta", "va", "za", "fe", "li", "mo", "ru", "se", "to", "pi"],
+      3: ["bra", "cra", "dra", "fra", "gra", "pra", "tra", "bla", "cla", "gla", "pla", "sta", "ste", "sti", "sto", "stu", "chi", "che", "ghi", "ghe"],
+      4: ["stra", "stre", "stri", "stro", "stru", "sbra", "scra", "sdra", "sgra", "spra", "sfla", "spla", "sbro", "scro", "stru"]
+    };
+
+    let itemDisponibili = [];
+    let displayDuration = 1600;
+    let targetCount = 2;
+    let exerciseMode = 'words';
+    let currentItem = "";
+
+    let fixationTimer = null;
+    let flashTimer = null;
+
+    const setupForm = document.getElementById('setup-form');
+    const setupCard = document.getElementById('setup-card');
+    const modeSelect = document.getElementById('exercise-mode');
+    const countGroup = document.getElementById('count-group');
+    const countLabel = document.getElementById('count-label');
+    const countInput = document.getElementById('count-input');
+
+    const gameScreen = document.getElementById('game-screen');
+    const wordDisplay = document.getElementById('word-display');
+    const inputContainer = document.getElementById('input-container');
+    const promptTitle = document.getElementById('prompt-title');
+    
+    const textModeControls = document.getElementById('text-mode-controls');
+    const buttonsModeControls = document.getElementById('buttons-mode-controls');
+    
+    const userInput = document.getElementById('user-input');
+    const checkBtn = document.getElementById('check-btn');
+    const option1 = document.getElementById('option-1');
+    const option2 = document.getElementById('option-2');
+    
+    const nextBtn = document.getElementById('next-btn');
+    const feedback = document.getElementById('feedback');
+    const restartBtn = document.getElementById('restart-btn');
+    
+    const creditsBtn = document.getElementById('credits-btn');
+    const creditsModal = document.getElementById('credits-modal');
+    const closeCreditsBtn = document.getElementById('close-credits-btn');
+
+    // Gestione Modalita Credits
+    creditsBtn.addEventListener('click', () => {
+      creditsModal.style.display = 'flex';
+    });
+
+    closeCreditsBtn.addEventListener('click', () => {
+      creditsModal.style.display = 'none';
+    });
+
+    creditsModal.addEventListener('click', (e) => {
+      if (e.target === creditsModal) {
+        creditsModal.style.display = 'none';
+      }
+    });
+
+    // Cambia le impostazioni visibili nel menu di avvio a seconda della modalità
+    modeSelect.addEventListener('change', () => {
+      const mode = modeSelect.value;
+      if (mode === 'single-letter') {
+        countGroup.classList.add('hidden');
+      } else {
+        countGroup.classList.remove('hidden');
+        if (mode === 'syllables') {
+          countLabel.textContent = "Numero di lettere della sillaba (1, 2, 3 o 4):";
+        } else {
+          countLabel.textContent = "Numero di sillabe (1, 2, 3 o 4):";
+        }
+      }
+    });
+
+    function resettaDisponibili() {
+      if (exerciseMode === 'single-letter') {
+        itemDisponibili = [...alfabeto];
+      } else if (exerciseMode === 'syllables') {
+        itemDisponibili = [...databaseSillabe[targetCount]];
+      } else {
+        itemDisponibili = [...databaseParole[targetCount]];
+      }
+    }
+
+    setupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      exerciseMode = modeSelect.value;
+      displayDuration = parseInt(document.getElementById('duration').value, 10);
+      targetCount = parseInt(countInput.value, 10);
+
+      // Adatta l'interfaccia di gioco
+      if (exerciseMode === 'single-letter') {
+        promptTitle.textContent = "Quale lettera hai visto?";
+        textModeControls.classList.add('hidden');
+        buttonsModeControls.classList.remove('hidden');
+      } else {
+        promptTitle.textContent = "Cosa c'era scritto?";
+        buttonsModeControls.classList.add('hidden');
+        textModeControls.classList.remove('hidden');
+      }
+
+      resettaDisponibili();
+      setupCard.classList.add('hidden');
+      creditsBtn.classList.add('hidden');
+      restartBtn.classList.remove('hidden');
+      gameScreen.style.display = 'flex';
+
+      startNewRound();
+    });
+
+    function startNewRound() {
+      clearTimeout(fixationTimer);
+      clearTimeout(flashTimer);
+
+      userInput.value = "";
+      feedback.textContent = "";
+      feedback.className = "feedback";
+      inputContainer.classList.add('hidden');
+      nextBtn.classList.add('hidden');
+      
+      if (exerciseMode === 'single-letter') {
+        option1.disabled = false;
+        option2.disabled = false;
+      } else {
+        checkBtn.classList.remove('hidden');
+      }
+
+      // Se le opzioni sono finite, ricarica la lista
+      if (itemDisponibili.length === 0) {
+        resettaDisponibili();
+      }
+
+      // Estrae l'elemento corrente
+      const index = Math.floor(Math.random() * itemDisponibili.length);
+      currentItem = itemDisponibili.splice(index, 1)[0];
+
+      // Se in modalità Lettera Singola, prepara i pulsanti con la risposta giusta e una sbagliata
+      if (exerciseMode === 'single-letter') {
+        let wrongLetter = "";
+        do {
+          const wrongIndex = Math.floor(Math.random() * alfabeto.length);
+          wrongLetter = alfabeto[wrongIndex];
+        } while (wrongLetter === currentItem);
+
+        if (Math.random() < 0.5) {
+          option1.textContent = currentItem;
+          option2.textContent = wrongLetter;
+        } else {
+          option1.textContent = wrongLetter;
+          option2.textContent = currentItem;
+        }
+      }
+
+      // Mostra punto di fissazione iniziale
+      wordDisplay.textContent = "+";
+      wordDisplay.classList.remove('hidden');
+
+      fixationTimer = setTimeout(() => {
+        wordDisplay.textContent = currentItem.toUpperCase();
+
+        flashTimer = setTimeout(() => {
+          wordDisplay.classList.add('hidden');
+          inputContainer.classList.remove('hidden');
+          if (exerciseMode !== 'single-letter') {
+            userInput.focus();
+          }
+        }, displayDuration);
+
+      }, 800);
+    }
+
+    // Verifica Risposta per Parole / Sillabe
+    function checkTextAnswer() {
+      const risposta = userInput.value.trim().toLowerCase();
+      
+      if (risposta === currentItem.toLowerCase()) {
+        feedback.textContent = "Esatto! Ottimo lavoro! 🎉";
+        feedback.className = "feedback correct";
+      } else {
+        feedback.textContent = `Sbagliato. Guarda in alto la risposta corretta.`;
+        feedback.className = "feedback wrong";
+        
+        wordDisplay.textContent = currentItem.toUpperCase();
+        wordDisplay.classList.remove('hidden');
+      }
+
+      checkBtn.classList.add('hidden');
+      nextBtn.classList.remove('hidden');
+      nextBtn.focus();
+    }
+
+    // Verifica Risposta per Lettera Singola
+    function checkButtonChoice(chosenLetter) {
+      option1.disabled = true;
+      option2.disabled = true;
+
+      if (chosenLetter === currentItem) {
+        feedback.textContent = "Esatto! Ottimo lavoro! 🎉";
+        feedback.className = "feedback correct";
+      } else {
+        feedback.textContent = `Sbagliato! Era la ${currentItem}`;
+        feedback.className = "feedback wrong";
+        
+        wordDisplay.textContent = currentItem.toUpperCase();
+        wordDisplay.classList.remove('hidden');
+      }
+
+      nextBtn.classList.remove('hidden');
+      nextBtn.focus();
+    }
+
+    function resetToSetup() {
+      clearTimeout(fixationTimer);
+      clearTimeout(flashTimer);
+
+      gameScreen.style.display = 'none';
+      wordDisplay.classList.add('hidden');
+      inputContainer.classList.add('hidden');
+      
+      restartBtn.classList.add('hidden');
+      creditsBtn.classList.remove('hidden');
+      setupCard.classList.remove('hidden');
+    }
+
+    // Eventi Click
+    checkBtn.addEventListener('click', checkTextAnswer);
+    option1.addEventListener('click', () => checkButtonChoice(option1.textContent));
+    option2.addEventListener('click', () => checkButtonChoice(option2.textContent));
+    
+    nextBtn.addEventListener('click', startNewRound);
+    restartBtn.addEventListener('click', resetToSetup);
+
+    // Gestione del tasto INVIO
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      if (!setupCard.classList.contains('hidden')) return;
+
+      e.preventDefault();
+
+      if (exerciseMode === 'single-letter') {
+        if (!nextBtn.classList.contains('hidden')) {
+          startNewRound();
+        }
+      } else {
+        if (!checkBtn.classList.contains('hidden')) {
+          checkTextAnswer();
+        } else if (!nextBtn.classList.contains('hidden')) {
+          startNewRound();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
