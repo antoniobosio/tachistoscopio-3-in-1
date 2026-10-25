@@ -70,7 +70,7 @@
       border-color: #4da6ff;
     }
 
-    /* Contenitore in alto al centro per Streak e Scritte Motivazionali subito sotto */
+    /* Pannello Superiore (Punteggio + Scritta Motivazionale sotto) */
     #top-hud {
       position: fixed;
       top: 15px;
@@ -389,40 +389,51 @@
     let audioCtx = null;
 
     function initAudio() {
-      if (!audioCtx) {
-        audioCtx = new AudioContext();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+      try {
+        if (!audioCtx) {
+          audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioCtx.destination);
+        source.start(0);
+      } catch (e) {
+        console.log("Audio non supportato o bloccato", e);
       }
     }
 
     // 5 Suoni differenti alternati in modo random per le risposte corrette
     function playRandomCorrectSound() {
       if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
       const now = audioCtx.currentTime;
-      const soundType = Math.floor(Math.random() * 5); // Genera un numero da 0 a 4
+      const soundType = Math.floor(Math.random() * 5);
 
       let freqs = [];
       let waveType = 'triangle';
 
       switch(soundType) {
-        case 0: // Trillo brillante ascendente
+        case 0:
           freqs = [523.25, 659.25, 783.99, 1046.50];
           break;
-        case 1: // Arpeggio festoso
+        case 1:
           freqs = [440, 554.37, 659.25, 880];
           waveType = 'sine';
           break;
-        case 2: // Saltello acuto
+        case 2:
           freqs = [587.33, 739.99, 880, 1174.66];
           waveType = 'triangle';
           break;
-        case 3: // Accordo gioioso rapido
+        case 3:
           freqs = [392, 523.25, 659.25, 783.99];
           waveType = 'sine';
           break;
-        case 4: // Campanella trionfale
+        case 4:
           freqs = [659.25, 830.61, 987.77, 1318.51];
           waveType = 'triangle';
           break;
@@ -442,26 +453,31 @@
       });
     }
 
+    // Suono di errore dolce e non punitivo
     function playWrongSound() {
       if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
       const now = audioCtx.currentTime;
-      const notes = [196.00, 164.81];
+      const notes = [220.00, 185.00];
       notes.forEach((freq, idx) => {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + idx * 0.15);
-        gain.gain.setValueAtTime(0.2, now + idx * 0.15);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.25);
+        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+        gain.gain.setValueAtTime(0.15, now + idx * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.2);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
-        osc.start(now + idx * 0.15);
-        osc.stop(now + idx * 0.15 + 0.25);
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 0.2);
       });
     }
 
     function playStreakSound() {
       if (!audioCtx) return;
+      if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
       const now = audioCtx.currentTime;
       const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
       notes.forEach((freq, idx) => {
@@ -527,10 +543,20 @@
     const lodiMotivazionali = [
       "ESATTO! SUPER! 🌟",
       "FANTASTICO! 🚀",
-      "STREPITOSO! ⭐",
+      "STRAPETOSO! ⭐",
       "GRANDE LAVORO! 🎉",
       "INARRESTABILE! 🔥",
       "GENIALE! 🧠⚡"
+    ];
+
+    // Frasi di incoraggiamento casuali in caso di errore
+    const frasiIncoraggiamento = [
+      "Non preoccuparti, riprova! 💪",
+      "Ci riuscirai, coraggio! ✨",
+      "Quasi fatto, riprova un'altra volta! 🌈",
+      "Non mollare, la prossima andrà benissimo! 🚀",
+      "Tranquillo, riprova subito! ⭐",
+      "Forza, puoi farcela! 🎯"
     ];
 
     let itemDisponibili = [];
@@ -699,7 +725,6 @@
         currentStreak++;
         streakNum.textContent = currentStreak;
         
-        // Animazione icona streak
         streakCounter.classList.add('pop');
         setTimeout(() => streakCounter.classList.remove('pop'), 300);
 
@@ -707,7 +732,6 @@
         feedback.textContent = lodeCasuale;
         feedback.className = "feedback correct";
         
-        // Ogni 5 risposte esatte consecutive scatta la fanfara speciale
         if (currentStreak > 0 && currentStreak % 5 === 0) {
           playStreakSound();
           triggerRewardAnimation(`🔥 SERIE DA ${currentStreak}! 🔥`);
@@ -720,7 +744,8 @@
         streakNum.textContent = "0";
 
         playWrongSound();
-        feedback.textContent = `Sbagliato. Guarda in alto la risposta corretta.`;
+        const fraseErrore = frasiIncoraggiamento[Math.floor(Math.random() * frasiIncoraggiamento.length)];
+        feedback.textContent = fraseErrore;
         feedback.className = "feedback wrong";
         
         wordDisplay.textContent = currentItem.toUpperCase();
@@ -748,7 +773,10 @@
 
     // Eventi Click
     checkBtn.addEventListener('click', checkTextAnswer);
-    nextBtn.addEventListener('click', startNewRound);
+    nextBtn.addEventListener('click', () => {
+      initAudio();
+      startNewRound();
+    });
     restartBtn.addEventListener('click', resetToSetup);
 
     // Gestione del tasto INVIO
@@ -761,6 +789,7 @@
       if (!checkBtn.classList.contains('hidden')) {
         checkTextAnswer();
       } else if (!nextBtn.classList.contains('hidden')) {
+        initAudio();
         startNewRound();
       }
     });
