@@ -70,6 +70,54 @@
       border-color: #4da6ff;
     }
 
+    /* Contenitore in alto al centro per Streak e Scritte Motivazionali subito sotto */
+    #top-hud {
+      position: fixed;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    #streak-counter {
+      background: linear-gradient(135deg, #ff9800, #ff5722);
+      color: white;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    #streak-counter.pop {
+      transform: scale(1.2);
+    }
+
+    /* Scritta motivazionale posizionata esattamente sotto al punteggio */
+    #reward-popup {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.6), 1px 1px 0 #000;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    #reward-popup.show {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+
     .card {
       background-color: #1e1e1e;
       padding: 2.5rem;
@@ -216,7 +264,6 @@
       justify-content: center;
     }
 
-    /* Pulsantoni per la modalità Lettera Singola (mantenuti per compatibilità stilistica) */
     .choices-container {
       display: flex;
       gap: 20px;
@@ -251,7 +298,7 @@
 
     .feedback {
       margin-top: 1rem;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       font-weight: bold;
       min-height: 1.5rem;
     }
@@ -263,6 +310,14 @@
   </style>
 </head>
 <body>
+
+  <!-- Pannello Superiore (Punteggio + Scritta Motivazionale sotto) -->
+  <div id="top-hud" class="hidden">
+    <div id="streak-counter">
+      <span>🔥</span> Serie: <span id="streak-num">0</span>
+    </div>
+    <div id="reward-popup">STREPITOSO! ⭐</div>
+  </div>
 
   <button id="credits-btn">Credits</button>
   <button id="restart-btn" class="hidden">Rinizia</button>
@@ -330,6 +385,99 @@
   </div>
 
   <script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // 5 Suoni differenti alternati in modo random per le risposte corrette
+    function playRandomCorrectSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const soundType = Math.floor(Math.random() * 5); // Genera un numero da 0 a 4
+
+      let freqs = [];
+      let waveType = 'triangle';
+
+      switch(soundType) {
+        case 0: // Trillo brillante ascendente
+          freqs = [523.25, 659.25, 783.99, 1046.50];
+          break;
+        case 1: // Arpeggio festoso
+          freqs = [440, 554.37, 659.25, 880];
+          waveType = 'sine';
+          break;
+        case 2: // Saltello acuto
+          freqs = [587.33, 739.99, 880, 1174.66];
+          waveType = 'triangle';
+          break;
+        case 3: // Accordo gioioso rapido
+          freqs = [392, 523.25, 659.25, 783.99];
+          waveType = 'sine';
+          break;
+        case 4: // Campanella trionfale
+          freqs = [659.25, 830.61, 987.77, 1318.51];
+          waveType = 'triangle';
+          break;
+      }
+
+      freqs.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = waveType;
+        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+        gain.gain.setValueAtTime(0.15, now + idx * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.07);
+        osc.stop(now + idx * 0.07 + 0.18);
+      });
+    }
+
+    function playWrongSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const notes = [196.00, 164.81];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.15);
+        osc.stop(now + idx * 0.15 + 0.25);
+      });
+    }
+
+    function playStreakSound() {
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+        gain.gain.setValueAtTime(0.25, now + idx * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + idx * 0.1);
+        osc.stop(now + idx * 0.1 + 0.4);
+      });
+    }
+
     const alfabeto = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "Z"];
 
     const databaseParole = {
@@ -376,11 +524,21 @@
       4: ["stra", "stre", "stri", "stro", "stru", "sbra", "scra", "sdra", "sgra", "spra", "sfla", "spla", "sbro", "scro", "stru"]
     };
 
+    const lodiMotivazionali = [
+      "ESATTO! SUPER! 🌟",
+      "FANTASTICO! 🚀",
+      "STREPITOSO! ⭐",
+      "GRANDE LAVORO! 🎉",
+      "INARRESTABILE! 🔥",
+      "GENIALE! 🧠⚡"
+    ];
+
     let itemDisponibili = [];
     let displayDuration = 1600;
     let targetCount = 2;
     let exerciseMode = 'words';
     let currentItem = "";
+    let currentStreak = 0;
 
     let fixationTimer = null;
     let flashTimer = null;
@@ -412,6 +570,11 @@
     const creditsBtn = document.getElementById('credits-btn');
     const creditsModal = document.getElementById('credits-modal');
     const closeCreditsBtn = document.getElementById('close-credits-btn');
+
+    const topHud = document.getElementById('top-hud');
+    const streakCounter = document.getElementById('streak-counter');
+    const streakNum = document.getElementById('streak-num');
+    const rewardPopup = document.getElementById('reward-popup');
 
     // Gestione Modalita Credits
     creditsBtn.addEventListener('click', () => {
@@ -453,12 +616,23 @@
       }
     }
 
+    function triggerRewardAnimation(text) {
+      rewardPopup.textContent = text;
+      rewardPopup.classList.add('show');
+      setTimeout(() => {
+        rewardPopup.classList.remove('show');
+      }, 1200);
+    }
+
     setupForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      initAudio();
       
       exerciseMode = modeSelect.value;
       displayDuration = parseInt(document.getElementById('duration').value, 10);
       targetCount = parseInt(countInput.value, 10);
+      currentStreak = 0;
+      streakNum.textContent = "0";
 
       // Adatta l'interfaccia di gioco
       buttonsModeControls.classList.add('hidden');
@@ -474,6 +648,7 @@
       setupCard.classList.add('hidden');
       creditsBtn.classList.add('hidden');
       restartBtn.classList.remove('hidden');
+      topHud.classList.remove('hidden');
       gameScreen.style.display = 'flex';
 
       startNewRound();
@@ -517,12 +692,34 @@
 
     // Verifica Risposta
     function checkTextAnswer() {
+      initAudio();
       const risposta = userInput.value.trim().toLowerCase();
       
       if (risposta === currentItem.toLowerCase()) {
-        feedback.textContent = "Esatto! Ottimo lavoro! 🎉";
+        currentStreak++;
+        streakNum.textContent = currentStreak;
+        
+        // Animazione icona streak
+        streakCounter.classList.add('pop');
+        setTimeout(() => streakCounter.classList.remove('pop'), 300);
+
+        const lodeCasuale = lodiMotivazionali[Math.floor(Math.random() * lodiMotivazionali.length)];
+        feedback.textContent = lodeCasuale;
         feedback.className = "feedback correct";
+        
+        // Ogni 5 risposte esatte consecutive scatta la fanfara speciale
+        if (currentStreak > 0 && currentStreak % 5 === 0) {
+          playStreakSound();
+          triggerRewardAnimation(`🔥 SERIE DA ${currentStreak}! 🔥`);
+        } else {
+          playRandomCorrectSound();
+          triggerRewardAnimation(lodeCasuale);
+        }
       } else {
+        currentStreak = 0;
+        streakNum.textContent = "0";
+
+        playWrongSound();
         feedback.textContent = `Sbagliato. Guarda in alto la risposta corretta.`;
         feedback.className = "feedback wrong";
         
@@ -542,6 +739,7 @@
       gameScreen.style.display = 'none';
       wordDisplay.classList.add('hidden');
       inputContainer.classList.add('hidden');
+      topHud.classList.add('hidden');
       
       restartBtn.classList.add('hidden');
       creditsBtn.classList.remove('hidden');
