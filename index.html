@@ -216,7 +216,7 @@
       justify-content: center;
     }
 
-    /* Pulsantoni per la modalità Lettera Singola */
+    /* Pulsantoni per la modalità Lettera Singola (mantenuti per compatibilità stilistica) */
     .choices-container {
       display: flex;
       gap: 20px;
@@ -274,7 +274,7 @@
       <div class="form-group">
         <label for="exercise-mode">Modalità di esercizio:</label>
         <select id="exercise-mode">
-          <option value="single-letter">Lettera Singola (scelta a 2 pulsanti)</option>
+          <option value="single-letter">Lettera Singola</option>
           <option value="syllables">Sillabe Singole</option>
           <option value="words" selected>Parole Intere</option>
         </select>
@@ -312,13 +312,13 @@
     <div id="input-container" class="card hidden">
       <h2 id="prompt-title" style="margin-bottom: 1rem; font-size: 1.3rem;">Cosa c'era scritto?</h2>
       
-      <!-- Opzione 1: Scrittura tastiera (per Parole e Sillabe) -->
+      <!-- Opzione 1: Scrittura tastiera -->
       <div id="text-mode-controls">
         <input type="text" id="user-input" placeholder="Scrivi la risposta..." autocomplete="off">
         <button id="check-btn" class="action-btn">Verifica</button>
       </div>
 
-      <!-- Opzione 2: Pulsantoni grandi (per Lettera Singola) -->
+      <!-- Opzione 2: Pulsantoni grandi (per eventuale uso futuro/nascosto) -->
       <div id="buttons-mode-controls" class="choices-container hidden">
         <button id="option-1" class="choice-btn"></button>
         <button id="option-2" class="choice-btn"></button>
@@ -461,14 +461,13 @@
       targetCount = parseInt(countInput.value, 10);
 
       // Adatta l'interfaccia di gioco
+      buttonsModeControls.classList.add('hidden');
+      textModeControls.classList.remove('hidden');
+
       if (exerciseMode === 'single-letter') {
         promptTitle.textContent = "Quale lettera hai visto?";
-        textModeControls.classList.add('hidden');
-        buttonsModeControls.classList.remove('hidden');
       } else {
         promptTitle.textContent = "Cosa c'era scritto?";
-        buttonsModeControls.classList.add('hidden');
-        textModeControls.classList.remove('hidden');
       }
 
       resettaDisponibili();
@@ -489,13 +488,7 @@
       feedback.className = "feedback";
       inputContainer.classList.add('hidden');
       nextBtn.classList.add('hidden');
-      
-      if (exerciseMode === 'single-letter') {
-        option1.disabled = false;
-        option2.disabled = false;
-      } else {
-        checkBtn.classList.remove('hidden');
-      }
+      checkBtn.classList.remove('hidden');
 
       // Se le opzioni sono finite, ricarica la lista
       if (itemDisponibili.length === 0) {
@@ -505,23 +498,6 @@
       // Estrae l'elemento corrente
       const index = Math.floor(Math.random() * itemDisponibili.length);
       currentItem = itemDisponibili.splice(index, 1)[0];
-
-      // Se in modalità Lettera Singola, prepara i pulsanti con la risposta giusta e una sbagliata
-      if (exerciseMode === 'single-letter') {
-        let wrongLetter = "";
-        do {
-          const wrongIndex = Math.floor(Math.random() * alfabeto.length);
-          wrongLetter = alfabeto[wrongIndex];
-        } while (wrongLetter === currentItem);
-
-        if (Math.random() < 0.5) {
-          option1.textContent = currentItem;
-          option2.textContent = wrongLetter;
-        } else {
-          option1.textContent = wrongLetter;
-          option2.textContent = currentItem;
-        }
-      }
 
       // Mostra punto di fissazione iniziale
       wordDisplay.textContent = "+";
@@ -533,15 +509,13 @@
         flashTimer = setTimeout(() => {
           wordDisplay.classList.add('hidden');
           inputContainer.classList.remove('hidden');
-          if (exerciseMode !== 'single-letter') {
-            userInput.focus();
-          }
+          userInput.focus();
         }, displayDuration);
 
       }, 800);
     }
 
-    // Verifica Risposta per Parole / Sillabe
+    // Verifica Risposta
     function checkTextAnswer() {
       const risposta = userInput.value.trim().toLowerCase();
       
@@ -561,26 +535,6 @@
       nextBtn.focus();
     }
 
-    // Verifica Risposta per Lettera Singola
-    function checkButtonChoice(chosenLetter) {
-      option1.disabled = true;
-      option2.disabled = true;
-
-      if (chosenLetter === currentItem) {
-        feedback.textContent = "Esatto! Ottimo lavoro! 🎉";
-        feedback.className = "feedback correct";
-      } else {
-        feedback.textContent = `Sbagliato! Era la ${currentItem}`;
-        feedback.className = "feedback wrong";
-        
-        wordDisplay.textContent = currentItem.toUpperCase();
-        wordDisplay.classList.remove('hidden');
-      }
-
-      nextBtn.classList.remove('hidden');
-      nextBtn.focus();
-    }
-
     function resetToSetup() {
       clearTimeout(fixationTimer);
       clearTimeout(flashTimer);
@@ -596,9 +550,6 @@
 
     // Eventi Click
     checkBtn.addEventListener('click', checkTextAnswer);
-    option1.addEventListener('click', () => checkButtonChoice(option1.textContent));
-    option2.addEventListener('click', () => checkButtonChoice(option2.textContent));
-    
     nextBtn.addEventListener('click', startNewRound);
     restartBtn.addEventListener('click', resetToSetup);
 
@@ -609,16 +560,10 @@
 
       e.preventDefault();
 
-      if (exerciseMode === 'single-letter') {
-        if (!nextBtn.classList.contains('hidden')) {
-          startNewRound();
-        }
-      } else {
-        if (!checkBtn.classList.contains('hidden')) {
-          checkTextAnswer();
-        } else if (!nextBtn.classList.contains('hidden')) {
-          startNewRound();
-        }
+      if (!checkBtn.classList.contains('hidden')) {
+        checkTextAnswer();
+      } else if (!nextBtn.classList.contains('hidden')) {
+        startNewRound();
       }
     });
   </script>
